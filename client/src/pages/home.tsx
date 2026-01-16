@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Filter, Shuffle, ShoppingCart, Calendar, Music, Sparkles, Check } from "lucide-react";
+import { Filter, Shuffle, ShoppingCart, Calendar, Music, Sparkles, Check, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -14,9 +14,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 import { RaffleNumber } from "@/components/raffle/RaffleNumber";
 import { RecentBuyers } from "@/components/raffle/RecentBuyers";
+import { PixPayment } from "@/components/raffle/PixPayment";
+import { PaymentSuccess } from "@/components/raffle/PaymentSuccess";
 
 import prizeImage from "@assets/generated_images/jbl_go_4_speaker_and_headphones_prize_set.png";
 import heroDecoration from "@assets/generated_images/baby_diapers_and_toys_composition.png";
@@ -31,6 +34,8 @@ const TAKEN_NUMBERS = new Set([
   1, 5, 12, 13, 25, 42, 50, 69, 88, 99, 101, 115, 120, 150, 199, 7, 21, 33, 44, 55
 ]);
 
+type CheckoutStep = "info" | "payment" | "success";
+
 export default function Home() {
   const [selectedNumbers, setSelectedNumbers] = useState<number[]>([]);
   const [showAvailableOnly, setShowAvailableOnly] = useState(false);
@@ -38,6 +43,12 @@ export default function Home() {
   const [itemsPerPage] = useState(50);
   const [randomQuantity, setRandomQuantity] = useState(5);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>("info");
+
+  // Form states
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [cpf, setCpf] = useState("");
 
   // Filter Logic
   const filteredNumbers = useMemo(() => {
@@ -72,6 +83,19 @@ export default function Home() {
     const picked = shuffled.slice(0, Math.min(randomQuantity, available.length));
     
     setSelectedNumbers(prev => [...prev, ...picked]);
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: "Rifa do Bebê",
+        text: "Ajude com as fraldas do bebê e concorra a prêmios!",
+        url: window.location.href,
+      }).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copiado para compartilhar!");
+    }
   };
 
   const totalPrice = selectedNumbers.length * TICKET_PRICE;
@@ -272,42 +296,89 @@ export default function Home() {
                     <p className="text-xs text-white/60 truncate max-w-[100px]">{selectedNumbers.join(", ")}</p>
                  </div>
                  
-                 <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+                 <Dialog 
+                    open={isCheckoutOpen} 
+                    onOpenChange={(open) => {
+                      setIsCheckoutOpen(open);
+                      if (!open) setCheckoutStep("info");
+                    }}
+                 >
                     <DialogTrigger asChild>
                       <Button size="lg" className="bg-primary hover:bg-primary/90 text-white rounded-full px-8 h-12 shadow-lg border-2 border-white/10">
                         Finalizar <ShoppingCart className="ml-2 w-5 h-5" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-md rounded-3xl border-0 shadow-2xl">
+                    <DialogContent className="sm:max-w-md rounded-3xl border-0 shadow-2xl overflow-hidden">
                       <DialogHeader>
-                        <DialogTitle className="text-2xl font-display text-center">Checkout</DialogTitle>
-                        <DialogDescription className="text-center">
-                          Você escolheu {selectedNumbers.length} números da sorte! 🍀
-                        </DialogDescription>
+                        <DialogTitle className="text-2xl font-display text-center">
+                          {checkoutStep === "info" && "Seus Dados"}
+                          {checkoutStep === "payment" && "Pagamento PIX"}
+                          {checkoutStep === "success" && "Pronto!"}
+                        </DialogTitle>
+                        {checkoutStep !== "success" && (
+                          <DialogDescription className="text-center">
+                            Você escolheu {selectedNumbers.length} números da sorte! 🍀
+                          </DialogDescription>
+                        )}
                       </DialogHeader>
-                      <div className="py-6 space-y-4">
-                        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
-                           <p className="text-sm text-muted-foreground mb-1">Seus Números</p>
-                           <div className="flex flex-wrap justify-center gap-2">
-                             {selectedNumbers.map(n => (
-                               <Badge key={n} variant="secondary" className="bg-white border border-slate-200 text-foreground text-lg w-10 h-10 flex items-center justify-center rounded-xl">
-                                 {n}
-                               </Badge>
-                             ))}
-                           </div>
-                        </div>
-                        <div className="flex justify-between items-center px-4">
-                          <span className="text-lg font-bold text-muted-foreground">Total</span>
-                          <span className="text-3xl font-display font-bold text-primary">R$ {totalPrice.toFixed(2)}</span>
-                        </div>
-                        
-                        <div className="space-y-3 pt-4">
-                          <Input placeholder="Seu Nome Completo" className="h-12 rounded-xl bg-slate-50 border-slate-200" />
-                          <Input placeholder="Seu WhatsApp / Telefone" className="h-12 rounded-xl bg-slate-50 border-slate-200" />
-                          <Button className="w-full h-12 rounded-xl text-lg font-bold bg-green-500 hover:bg-green-600 text-white">
-                            Pagar com PIX
-                          </Button>
-                        </div>
+
+                      <div className="py-2">
+                        {checkoutStep === "info" && (
+                          <div className="space-y-4">
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
+                              <p className="text-sm text-muted-foreground mb-1">Seus Números</p>
+                              <div className="flex flex-wrap justify-center gap-2">
+                                {selectedNumbers.map(n => (
+                                  <Badge key={n} variant="secondary" className="bg-white border border-slate-200 text-foreground text-lg w-10 h-10 flex items-center justify-center rounded-xl">
+                                    {n}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="space-y-3 pt-2">
+                              <Input 
+                                placeholder="Seu Nome Completo" 
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="h-12 rounded-xl bg-slate-50 border-slate-200" 
+                              />
+                              <Input 
+                                placeholder="Seu WhatsApp / Telefone" 
+                                value={phone}
+                                onChange={(e) => setPhone(e.target.value)}
+                                className="h-12 rounded-xl bg-slate-50 border-slate-200" 
+                              />
+                              <Input 
+                                placeholder="Seu CPF" 
+                                value={cpf}
+                                onChange={(e) => setCpf(e.target.value)}
+                                className="h-12 rounded-xl bg-slate-50 border-slate-200" 
+                              />
+                              <div className="flex justify-between items-center px-4 py-2">
+                                <span className="text-lg font-bold text-muted-foreground">Total</span>
+                                <span className="text-3xl font-display font-bold text-primary">R$ {totalPrice.toFixed(2)}</span>
+                              </div>
+                              <Button 
+                                onClick={() => setCheckoutStep("payment")}
+                                disabled={!name || !phone || !cpf}
+                                className="w-full h-12 rounded-xl text-lg font-bold bg-green-500 hover:bg-green-600 text-white"
+                              >
+                                Pagar com PIX
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {checkoutStep === "payment" && (
+                          <PixPayment 
+                            total={totalPrice} 
+                            onConfirm={() => setCheckoutStep("success")} 
+                          />
+                        )}
+
+                        {checkoutStep === "success" && (
+                          <PaymentSuccess onShare={handleShare} />
+                        )}
                       </div>
                     </DialogContent>
                  </Dialog>
