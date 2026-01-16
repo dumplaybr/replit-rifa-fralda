@@ -30,7 +30,7 @@ const PURCHASED_NUMBERS = [
 ];
 
 const DURATION = 60; // 60 seconds total
-const SLOW_DOWN_AT = 10; // Slow down in the last 10 seconds
+const ITEM_WIDTH = 80; // Each number cell is 80px
 
 export default function Draw() {
   const [isSpinning, setIsSpinning] = useState(false);
@@ -57,10 +57,11 @@ export default function Draw() {
     const finalWinner = PURCHASED_NUMBERS[Math.floor(Math.random() * PURCHASED_NUMBERS.length)];
     
     // Find a position for this winner near the end of our strip
-    const targetIndex = rouletteItems.length - 20;
+    // We target an index far enough to ensure enough scrolling
+    const targetIndex = rouletteItems.length - 30;
     rouletteItems[targetIndex] = finalWinner;
 
-    // Timer logic
+    // Timer logic for the UI display
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -71,13 +72,19 @@ export default function Draw() {
       });
     }, 1000);
 
-    // Initial fast spin
+    // Calculate exact target position (centering the winner under the pointer)
+    const targetX = targetIndex * ITEM_WIDTH;
+
+    // Animation with a single cubic-bezier ease that handles the entire motion profile:
+    // Starts, spins, and then decelerates smoothly to 0 velocity at the exact target.
+    // The ease function [0.45, 0.05, 0.55, 0.95] provides a smooth start and a gradual stop.
+    // However, to make it more "roulette-like", we'll use a custom cubic-bezier that
+    // maintains speed for longer then decelerates.
     await controls.start({
-      x: `-${targetIndex * 80}px`,
+      x: -targetX,
       transition: { 
         duration: DURATION,
-        ease: [0.12, 0, 0.39, 0], // Custom ease to start fast and stay fast
-        times: [0, (DURATION - SLOW_DOWN_AT) / DURATION, 1]
+        ease: [0.1, 0, 0.1, 1], // Very long deceleration tail
       }
     });
 
@@ -113,7 +120,7 @@ export default function Draw() {
           <Card className="relative h-32 bg-white/50 backdrop-blur-md border-4 border-white shadow-2xl rounded-[2rem] overflow-hidden">
             {/* Target Area Overlay */}
             <div className="absolute inset-0 pointer-events-none z-10 flex justify-center">
-              <div className="w-20 h-full border-x-4 border-primary/20 bg-primary/5" />
+              <div className="w-[80px] h-full border-x-4 border-primary/20 bg-primary/5" />
             </div>
 
             {/* Moving Strip */}
@@ -126,7 +133,7 @@ export default function Draw() {
               {rouletteItems.map((item, i) => (
                 <div 
                   key={i}
-                  className="w-20 h-20 flex items-center justify-center shrink-0 mx-0 text-2xl font-display font-bold border-r border-slate-100/50"
+                  className="w-[80px] h-20 flex items-center justify-center shrink-0 mx-0 text-2xl font-display font-bold border-r border-slate-100/50"
                 >
                   <span className={i % 2 === 0 ? "text-primary" : "text-secondary"}>
                     {item.number}
