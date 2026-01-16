@@ -72,14 +72,13 @@ export default function Draw() {
       });
     }, 1000);
 
-    // Calculate exact target position (centering the winner under the pointer)
-    const targetX = targetIndex * ITEM_WIDTH;
+    // Calculate exact target position
+    // We need to subtract half of ITEM_WIDTH because the container is centered at px-[50%]
+    // The pointer is at the exact center of the container.
+    // The items are appended from the left.
+    // So to align item at targetIndex to the center, we move targetIndex * ITEM_WIDTH.
+    const targetX = (targetIndex * ITEM_WIDTH) + (ITEM_WIDTH / 2);
 
-    // Animation with a single cubic-bezier ease that handles the entire motion profile:
-    // Starts, spins, and then decelerates smoothly to 0 velocity at the exact target.
-    // The ease function [0.45, 0.05, 0.55, 0.95] provides a smooth start and a gradual stop.
-    // However, to make it more "roulette-like", we'll use a custom cubic-bezier that
-    // maintains speed for longer then decelerates.
     await controls.start({
       x: -targetX,
       transition: { 
@@ -118,9 +117,9 @@ export default function Draw() {
           </div>
 
           <Card className="relative h-32 bg-white/50 backdrop-blur-md border-4 border-white shadow-2xl rounded-[2rem] overflow-hidden">
-            {/* Target Area Overlay */}
+            {/* Target Area Overlay (Pointer Guide) */}
             <div className="absolute inset-0 pointer-events-none z-10 flex justify-center">
-              <div className="w-[80px] h-full border-x-4 border-primary/20 bg-primary/5" />
+              <div className="w-[4px] h-full bg-primary/40" />
             </div>
 
             {/* Moving Strip */}
