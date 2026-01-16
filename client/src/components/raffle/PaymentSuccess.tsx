@@ -11,15 +11,21 @@ export function PaymentSuccess({ onShare }: SuccessModalProps) {
     <div className="py-8 text-center space-y-6">
       <motion.div
         initial={{ scale: 0 }}
-        animate={{ scale: 1, rotate: [0, 10, -10, 0] }}
+        animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 260, damping: 20 }}
         className="flex justify-center"
       >
         <div className="relative">
           <CheckCircle2 className="w-24 h-24 text-green-500" />
           <motion.div
-            animate={{ scale: [1, 1.2, 1] }}
-            transition={{ repeat: Infinity, duration: 2 }}
+            animate={{ 
+              rotate: [0, 10, -10, 0],
+              scale: [1, 1.2, 1] 
+            }}
+            transition={{ 
+              rotate: { repeat: Infinity, duration: 2, ease: "easeInOut" },
+              scale: { repeat: Infinity, duration: 2, ease: "easeInOut" }
+            }}
             className="absolute -top-2 -right-2"
           >
             <PartyPopper className="w-8 h-8 text-primary" />
